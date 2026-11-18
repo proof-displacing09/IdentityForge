@@ -1,0 +1,1066 @@
+{
+  "generated_at": "2026-11-09T23:50:00Z",
+  "mode": "DETERMINISTIC OFFLINE FIXTURE",
+  "provider": "offline-fixture",
+  "keycloak": "NOT RUN (no Docker in sandbox)",
+  "backend_tests": "98 passed, 0 failed (pytest, see VERIFICATION_LOG.md)",
+  "frontend_tests": "12 passed, 0 failed (Vitest)",
+  "runs": [
+    {
+      "scenario_id": "I1",
+      "title": "Normal login (positive baseline)",
+      "run_id": "run-8036aa490926",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Session created; member resource allowed; officer resource denied for a student.",
+      "secure_result": "session_created",
+      "flawed_result": "allowed",
+      "secure_reason": "OK",
+      "flawed_reason": "OK",
+      "secure_session_created": true,
+      "flawed_session_created": true,
+      "resource_access": {
+        "member": true,
+        "officer": false
+      },
+      "timeline": [
+        {
+          "step": "TOKEN_VERIFIED",
+          "outcome": "ok",
+          "reason_code": "OK",
+          "reason": "OK",
+          "detail": "",
+          "at": "2026-11-09T23:50:44.479246Z"
+        },
+        {
+          "step": "SESSION_CREATED",
+          "outcome": "ok",
+          "reason_code": null,
+          "reason": null,
+          "detail": "member session created",
+          "at": "2026-11-09T23:50:44.479460Z"
+        }
+      ],
+      "decisions": [
+        {
+          "name": "algorithm",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256"
+        },
+        {
+          "name": "key_id",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "kid lab-key-1 found in JWKS"
+        },
+        {
+          "name": "signature",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256 signature valid"
+        },
+        {
+          "name": "issuer",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "issuer matches allowlist"
+        },
+        {
+          "name": "audience",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "audience matches client_id"
+        },
+        {
+          "name": "expiry",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "token not expired"
+        },
+        {
+          "name": "subject",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "sub present"
+        },
+        {
+          "name": "nonce",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "nonce matches transaction"
+        }
+      ],
+      "elapsed_ms": 356,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-8036aa490926",
+        "scenario_id": "I1",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:44.479532Z",
+        "elapsed_ms": 356,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:44.479532Z",
+      "observed_secure": "session_created",
+      "observed_flawed": "allowed",
+      "validation_reason": "OK",
+      "resource_access_outcome": "member=allowed; officer=denied"
+    },
+    {
+      "scenario_id": "I2",
+      "title": "Incorrect state / login transaction binding",
+      "run_id": "run-63537f961c2b",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Callback rejected (STATE_MISMATCH / STATE_MISSING); no session created.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "STATE_MISMATCH",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "AUTHORIZATION_STARTED",
+          "outcome": "ok",
+          "reason_code": null,
+          "reason": null,
+          "detail": "",
+          "at": "2026-11-09T23:50:44.548865Z"
+        },
+        {
+          "step": "CALLBACK_RECEIVED",
+          "outcome": "rejected",
+          "reason_code": "STATE_MISMATCH",
+          "reason": "STATE_MISMATCH",
+          "detail": "state does not match any transaction",
+          "at": "2026-11-09T23:50:44.548921Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-63537f961c2b",
+        "scenario_id": "I2",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:44.548981Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:44.548981Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "STATE_MISMATCH",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I3",
+      "title": "Wrong PKCE verifier",
+      "run_id": "run-f37ea45f7e22",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Exchange denied (PKCE_MISMATCH); no token or session issued.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "PKCE_MISMATCH",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "CODE_REDEEMED",
+          "outcome": "rejected",
+          "reason_code": "PKCE_MISMATCH",
+          "reason": "PKCE_MISMATCH",
+          "detail": "",
+          "at": "2026-11-09T23:50:44.608238Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-f37ea45f7e22",
+        "scenario_id": "I3",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:44.608310Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:44.608310Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "PKCE_MISMATCH",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I4",
+      "title": "Invalid redirect URI",
+      "run_id": "run-4767fcb68973",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Authorization server rejects the unregistered redirect (REDIRECT_URI_MISMATCH); no code is sent.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "REDIRECT_URI_MISMATCH",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "AUTHORIZATION_STARTED",
+          "outcome": "rejected",
+          "reason_code": "REDIRECT_URI_MISMATCH",
+          "reason": "REDIRECT_URI_MISMATCH",
+          "detail": "redirect URI not registered",
+          "at": "2026-11-09T23:50:44.670942Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-4767fcb68973",
+        "scenario_id": "I4",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:44.671047Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:44.671047Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "REDIRECT_URI_MISMATCH",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I5",
+      "title": "Wrong issuer",
+      "run_id": "run-760e95473a3f",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (WRONG_ISSUER) despite a valid signature.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "WRONG_ISSUER",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "TOKEN_VERIFIED",
+          "outcome": "rejected",
+          "reason_code": "WRONG_ISSUER",
+          "reason": "WRONG_ISSUER",
+          "detail": "",
+          "at": "2026-11-09T23:50:45.282952Z"
+        }
+      ],
+      "decisions": [
+        {
+          "name": "algorithm",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256"
+        },
+        {
+          "name": "key_id",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "kid lab-key-1 found in JWKS"
+        },
+        {
+          "name": "signature",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256 signature valid"
+        },
+        {
+          "name": "issuer",
+          "passed": false,
+          "reason_code": "WRONG_ISSUER",
+          "detail": "iss 'http://127.0.0.1:8080/realms/evil-lab' != expected issuer"
+        }
+      ],
+      "elapsed_ms": 552,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-760e95473a3f",
+        "scenario_id": "I5",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:45.283050Z",
+        "elapsed_ms": 552,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:45.283050Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "WRONG_ISSUER",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I6",
+      "title": "Wrong audience",
+      "run_id": "run-8169542f281c",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (WRONG_AUDIENCE) despite a valid signature.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "WRONG_AUDIENCE",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "TOKEN_VERIFIED",
+          "outcome": "rejected",
+          "reason_code": "WRONG_AUDIENCE",
+          "reason": "WRONG_AUDIENCE",
+          "detail": "",
+          "at": "2026-11-09T23:50:46.124868Z"
+        }
+      ],
+      "decisions": [
+        {
+          "name": "algorithm",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256"
+        },
+        {
+          "name": "key_id",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "kid lab-key-1 found in JWKS"
+        },
+        {
+          "name": "signature",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256 signature valid"
+        },
+        {
+          "name": "issuer",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "issuer matches allowlist"
+        },
+        {
+          "name": "audience",
+          "passed": false,
+          "reason_code": "WRONG_AUDIENCE",
+          "detail": "aud 'other-synthetic-client' != 'campus-club-portal'"
+        }
+      ],
+      "elapsed_ms": 781,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-8169542f281c",
+        "scenario_id": "I6",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:46.124969Z",
+        "elapsed_ms": 781,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:46.124969Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "WRONG_AUDIENCE",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I7",
+      "title": "Expired or replayed transaction",
+      "run_id": "run-3d48424a6bc8",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (EXPIRED / CODE_REUSED / STATE_REUSED); no renewed session.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "EXPIRED",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "CALLBACK_RECEIVED",
+          "outcome": "ok",
+          "reason_code": null,
+          "reason": null,
+          "detail": "first use ok",
+          "at": "2026-11-09T23:50:46.907488Z"
+        },
+        {
+          "step": "CALLBACK_RECEIVED",
+          "outcome": "rejected",
+          "reason_code": "STATE_REUSED",
+          "reason": "STATE_REUSED",
+          "detail": "second use rejected",
+          "at": "2026-11-09T23:50:46.907521Z"
+        },
+        {
+          "step": "TOKEN_VERIFIED",
+          "outcome": "rejected",
+          "reason_code": "EXPIRED",
+          "reason": "EXPIRED",
+          "detail": "expired token",
+          "at": "2026-11-09T23:50:46.907544Z"
+        }
+      ],
+      "decisions": [
+        {
+          "name": "algorithm",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256"
+        },
+        {
+          "name": "key_id",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "kid lab-key-1 found in JWKS"
+        },
+        {
+          "name": "expiry",
+          "passed": false,
+          "reason_code": "EXPIRED",
+          "detail": "token is expired"
+        }
+      ],
+      "elapsed_ms": 722,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-3d48424a6bc8",
+        "scenario_id": "I7",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:46.907569Z",
+        "elapsed_ms": 722,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:46.907569Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "EXPIRED",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I8",
+      "title": "Missing / wrong OIDC nonce",
+      "run_id": "run-9c0e9c1774a4",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (NONCE_MISMATCH / MISSING_CLAIM); no session.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "NONCE_MISMATCH",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "TOKEN_VERIFIED",
+          "outcome": "rejected",
+          "reason_code": "NONCE_MISMATCH",
+          "reason": "NONCE_MISMATCH",
+          "detail": "",
+          "at": "2026-11-09T23:50:47.446297Z"
+        }
+      ],
+      "decisions": [
+        {
+          "name": "algorithm",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256"
+        },
+        {
+          "name": "key_id",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "kid lab-key-1 found in JWKS"
+        },
+        {
+          "name": "signature",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256 signature valid"
+        },
+        {
+          "name": "issuer",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "issuer matches allowlist"
+        },
+        {
+          "name": "audience",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "audience matches client_id"
+        },
+        {
+          "name": "expiry",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "token not expired"
+        },
+        {
+          "name": "subject",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "sub present"
+        },
+        {
+          "name": "nonce",
+          "passed": false,
+          "reason_code": "NONCE_MISMATCH",
+          "detail": "nonce does not match the login transaction"
+        }
+      ],
+      "elapsed_ms": 479,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-9c0e9c1774a4",
+        "scenario_id": "I8",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:47.446414Z",
+        "elapsed_ms": 479,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:47.446414Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "NONCE_MISMATCH",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I9",
+      "title": "Unsigned, wrong-algorithm, wrong-key or tampered token",
+      "run_id": "run-352ccc358fae",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (ALG_NOT_ALLOWED / BAD_SIGNATURE / UNKNOWN_KEY); no session.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "BAD_SIGNATURE",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "TOKEN_VERIFIED",
+          "outcome": "rejected",
+          "reason_code": "BAD_SIGNATURE",
+          "reason": "BAD_SIGNATURE",
+          "detail": "",
+          "at": "2026-11-09T23:50:47.983062Z"
+        }
+      ],
+      "decisions": [
+        {
+          "name": "algorithm",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "RS256"
+        },
+        {
+          "name": "key_id",
+          "passed": true,
+          "reason_code": "OK",
+          "detail": "kid lab-key-1 found in JWKS"
+        },
+        {
+          "name": "signature",
+          "passed": false,
+          "reason_code": "BAD_SIGNATURE",
+          "detail": "signature verification failed"
+        }
+      ],
+      "elapsed_ms": 474,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-352ccc358fae",
+        "scenario_id": "I9",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:47.983164Z",
+        "elapsed_ms": 474,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:47.983164Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "BAD_SIGNATURE",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I10",
+      "title": "Code replay and concurrent double redemption",
+      "run_id": "run-515793874f55",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Exactly one redemption succeeds; the second is rejected (CODE_REUSED).",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "CODE_REUSED",
+      "flawed_reason": "OK",
+      "secure_session_created": true,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "CODE_REDEEMED",
+          "outcome": "ok",
+          "reason_code": null,
+          "reason": null,
+          "detail": "first redemption",
+          "at": "2026-11-09T23:50:48.044762Z"
+        },
+        {
+          "step": "CODE_REDEEMED",
+          "outcome": "rejected",
+          "reason_code": "CODE_REUSED",
+          "reason": "CODE_REUSED",
+          "detail": "second redemption of same code",
+          "at": "2026-11-09T23:50:48.044832Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-515793874f55",
+        "scenario_id": "I10",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.044892Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.044892Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "CODE_REUSED",
+      "resource_access_outcome": "session_created"
+    },
+    {
+      "scenario_id": "I11",
+      "title": "Session fixation and rotation on login",
+      "run_id": "run-7afb08c45761",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Post-login session id differs from the pre-login id; the old id is revoked (SESSION_FIXATION prevented).",
+      "secure_result": "session_created",
+      "flawed_result": "allowed",
+      "secure_reason": "OK",
+      "flawed_reason": "OK",
+      "secure_session_created": true,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "SESSION_CREATED",
+          "outcome": "ok",
+          "reason_code": "OK",
+          "reason": "OK",
+          "detail": "session id rotated on login",
+          "at": "2026-11-09T23:50:48.105391Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-7afb08c45761",
+        "scenario_id": "I11",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.105537Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.105537Z",
+      "observed_secure": "session_created",
+      "observed_flawed": "allowed",
+      "validation_reason": "OK",
+      "resource_access_outcome": "session_created"
+    },
+    {
+      "scenario_id": "I12",
+      "title": "Logout and stale session cookie reuse",
+      "run_id": "run-fd93b700bf0c",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Access denied (SESSION_REVOKED); no session resurrection.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "SESSION_REVOKED",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {
+        "member_after_logout": false
+      },
+      "timeline": [
+        {
+          "step": "SESSION_REVOKED",
+          "outcome": "ok",
+          "reason_code": null,
+          "reason": null,
+          "detail": "logout revoked session",
+          "at": "2026-11-09T23:50:48.165311Z"
+        },
+        {
+          "step": "RESOURCE_ACCESS",
+          "outcome": "rejected",
+          "reason_code": "SESSION_REVOKED",
+          "reason": "SESSION_REVOKED",
+          "detail": "stale cookie denied",
+          "at": "2026-11-09T23:50:48.165344Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-fd93b700bf0c",
+        "scenario_id": "I12",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.165453Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.165453Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "SESSION_REVOKED",
+      "resource_access_outcome": "member_after_logout=denied"
+    },
+    {
+      "scenario_id": "I13",
+      "title": "Cross-user, member-vs-officer authorization boundary",
+      "run_id": "run-b42e0bb081c6",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Officer access denied (POLICY_DENIED); member access still allowed.",
+      "secure_result": "denied",
+      "flawed_result": "allowed",
+      "secure_reason": "POLICY_DENIED",
+      "flawed_reason": "OK",
+      "secure_session_created": true,
+      "flawed_session_created": true,
+      "resource_access": {
+        "member": true,
+        "officer": false,
+        "officer_via_spoofed_claim": true
+      },
+      "timeline": [
+        {
+          "step": "RESOURCE_ACCESS",
+          "outcome": "rejected",
+          "reason_code": "POLICY_DENIED",
+          "reason": "POLICY_DENIED",
+          "detail": "student denied officer resource",
+          "at": "2026-11-09T23:50:48.224895Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-b42e0bb081c6",
+        "scenario_id": "I13",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.224974Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.224974Z",
+      "observed_secure": "denied",
+      "observed_flawed": "allowed",
+      "validation_reason": "POLICY_DENIED",
+      "resource_access_outcome": "member=allowed; officer=denied; officer_via_spoofed_claim=allowed"
+    },
+    {
+      "scenario_id": "I14",
+      "title": "Missing / malformed tokens and key-discovery errors",
+      "run_id": "run-5c4b5469f8f6",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (MALFORMED_TOKEN / UNKNOWN_KEY / JWKS_ERROR); no session.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "MALFORMED_TOKEN",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "TOKEN_VERIFIED",
+          "outcome": "rejected",
+          "reason_code": "MALFORMED_TOKEN",
+          "reason": "MALFORMED_TOKEN",
+          "detail": "",
+          "at": "2026-11-09T23:50:48.737738Z"
+        }
+      ],
+      "decisions": [
+        {
+          "name": "token_header",
+          "passed": false,
+          "reason_code": "MALFORMED_TOKEN",
+          "detail": "unreadable header: DecodeError"
+        }
+      ],
+      "elapsed_ms": 455,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-5c4b5469f8f6",
+        "scenario_id": "I14",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.737884Z",
+        "elapsed_ms": 455,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.737884Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "MALFORMED_TOKEN",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I15",
+      "title": "Callback parameter confusion",
+      "run_id": "run-85db5f84bad0",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (CALLBACK_MALFORMED / STATE_MISMATCH); no session.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "CALLBACK_MALFORMED",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "CALLBACK_RECEIVED",
+          "outcome": "rejected",
+          "reason_code": "CALLBACK_MALFORMED",
+          "reason": "CALLBACK_MALFORMED",
+          "detail": "duplicate state parameters",
+          "at": "2026-11-09T23:50:48.851761Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-85db5f84bad0",
+        "scenario_id": "I15",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.851880Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.851880Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "CALLBACK_MALFORMED",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I16",
+      "title": "CSRF on sensitive portal operations",
+      "run_id": "run-21ed66065f19",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected (CSRF_DENIED); the mutation does not happen.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "CSRF_DENIED",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "MUTATION",
+          "outcome": "rejected",
+          "reason_code": "CSRF_DENIED",
+          "reason": "CSRF_DENIED",
+          "detail": "cross-site POST without valid CSRF token",
+          "at": "2026-11-09T23:50:48.909761Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-21ed66065f19",
+        "scenario_id": "I16",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.909861Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.909861Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "CSRF_DENIED",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I17",
+      "title": "Overlong inputs, malformed JWT/JWK, log injection",
+      "run_id": "run-80962e116650",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Rejected or sanitized (INPUT_TOO_LONG / MALFORMED_INPUT); logs contain no raw newlines from input.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "INPUT_TOO_LONG",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "INPUT_VALIDATION",
+          "outcome": "rejected",
+          "reason_code": "INPUT_TOO_LONG",
+          "reason": "INPUT_TOO_LONG",
+          "detail": "input length 10000 exceeds 2048",
+          "at": "2026-11-09T23:50:48.969510Z"
+        },
+        {
+          "step": "LOG_SANITIZE",
+          "outcome": "ok",
+          "reason_code": null,
+          "reason": null,
+          "detail": "CR/LF stripped from log value",
+          "at": "2026-11-09T23:50:48.969580Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-80962e116650",
+        "scenario_id": "I17",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:48.969637Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:48.969637Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "INPUT_TOO_LONG",
+      "resource_access_outcome": "no_session"
+    },
+    {
+      "scenario_id": "I18",
+      "title": "Config / SSRF protections for issuer and JWKS URLs",
+      "run_id": "run-b7cb7453cd48",
+      "mode": "DETERMINISTIC OFFLINE FIXTURE",
+      "expected_outcome": "Blocked before fetching (SSRF_BLOCKED / UNTRUSTED_ISSUER_URL); no request is made.",
+      "secure_result": "rejected",
+      "flawed_result": "allowed",
+      "secure_reason": "SSRF_BLOCKED",
+      "flawed_reason": "OK",
+      "secure_session_created": false,
+      "flawed_session_created": true,
+      "resource_access": {},
+      "timeline": [
+        {
+          "step": "DISCOVERY",
+          "outcome": "rejected",
+          "reason_code": "SSRF_BLOCKED",
+          "reason": "SSRF_BLOCKED",
+          "detail": "external/metadata URL blocked before fetch",
+          "at": "2026-11-09T23:50:49.030546Z"
+        }
+      ],
+      "decisions": [],
+      "elapsed_ms": 0,
+      "status": "PASS",
+      "limitations": "Offline fixture with locally generated RSA keys and synthetic issuers; not a live Keycloak execution. Keycloak integration is a separate mode and is NOT RUN in this environment.",
+      "reproducibility": {
+        "run_id": "run-b7cb7453cd48",
+        "scenario_id": "I18",
+        "fixture_revision": "1.0.0",
+        "provider": "offline-fixture",
+        "mode": "DETERMINISTIC OFFLINE FIXTURE",
+        "started_at": "2026-11-09T23:50:49.030648Z",
+        "elapsed_ms": 0,
+        "python_version": "3.12.3",
+        "code_revision": "uncommitted-local"
+      },
+      "timestamp": "2026-11-09T23:50:49.030648Z",
+      "observed_secure": "rejected",
+      "observed_flawed": "allowed",
+      "validation_reason": "SSRF_BLOCKED",
+      "resource_access_outcome": "no_session"
+    }
+  ]
+}

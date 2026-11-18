@@ -1,0 +1,21 @@
+# IdentityForge test-only pins (v8.0.1) — SEPARATE from the runtime
+# dependencies in backend/requirements-freeze.txt and from the
+# runtime + tool pins in backend/requirements.txt.
+#
+# These are the tools that TEST the project, not dependencies of it.
+# hypothesis is needed ONLY by scripts/pentest/ws3/test_ws3_properties.py
+# (24 property tests); the other 27 WS3 tests (differential + fault
+# injection) run without it, and the 491-test backend suite does not
+# import it at all. sortedcontainers is hypothesis's only runtime
+# dependency, pinned to the exact version resolved here.
+#
+# The pins below are the exact versions verified in the v8.0.1 build
+# sandbox (hypothesis 6.170.15 + sortedcontainers 2.4.0, 2026-11-13:
+# installed in a disposable venv from this file + the freeze, then
+# the 51 WS3 tests run green). hypothesis is mirrored in
+# backend/pyproject.toml [project.optional-dependencies] dev — update
+# both together, never silently. The runtime freeze is deliberately
+# untouched: hypothesis is never shipped, audited, or imported by
+# the app.
+hypothesis==6.170.15
+sortedcontainers==2.4.0

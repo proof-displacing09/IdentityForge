@@ -1,0 +1,81 @@
+# IdentityForge frontend E2E image (test-only, P0-02).
+#
+# Same Node 24 base as the production frontend image, plus the
+# Playwright Chromium browser and its system dependencies (installed
+# at IMAGE build time, not at test time) and socat for the loopback
+# forwarders (see docker-e2e-entrypoint.sh). This image is ~1-1.5 GB
+# — the largest in the lab — which is why the E2E service runs ALONE
+# after the other test containers stop (see docker-compose.test.yml).
+# It is never the shipped app image (frontend/Dockerfile) and is
+# never published: it exists only so a Windows reviewer needs no host
+# Node/Playwright installation.
+#
+# IF-V8-42 (v8.0.5) — non-root runtime: the E2E run (socat
+# forwarders + Playwright + Chromium) runs as the dedicated user
+# `identityforge` (UID/GID 10001, its own group) — the same app UID
+# as the backend and frontend. This is safe here for three reasons:
+#   * socat binds 127.0.0.1:5173/8000/8080 — all above 1024, so no
+#     privilege is needed to bind them;
+#   * Playwright launches Chromium with --no-sandbox by default
+#     (chromiumSandbox defaults to false), so running as non-root
+#     changes nothing about the browser sandbox — the sandbox was
+#     already off in this test-only image;
+#   * the browser binaries are installed at BUILD time into
+#     PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright (owned by the app
+#     user), NOT into the installing user's home cache — a root
+#     install into /root/.cache/ms-playwright would be unreadable
+#     by the test user at runtime. The `--with-deps` apt install
+#     still runs as root at BUILD time (apt needs it); only the
+#     browser files change owner.
+# Residual risk (NOT RUN without Docker — see the IF-V8-42 report):
+# the screenshots/report bind mounts (./test-results/...) are
+# host-owned; Docker Desktop normally maps them writable, but if
+# the host directory arrives root-owned/read-only inside the VM,
+# the entrypoint's writability preflight fails closed with a
+# precise message instead of a cryptic Playwright error. The
+# Dockerfile contains no `USER root`.
+FROM node:24-slim
+
+# Dedicated non-root test user, created before anything it must own.
+RUN groupadd -r identityforge -g 10001 \
+    && useradd -r -m -u 10001 -g identityforge identityforge
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl socat \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Browsers + OS dependencies for Chromium (headless shell + full
+# Chromium). Installed here so `docker compose run frontend-e2e`
+# does not download ~500 MB on every run. PLAYWRIGHT_BROWSERS_PATH
+# pins the browser location to a user-owned directory (IF-V8-42);
+# the `--with-deps` apt step runs as root at build time, the browser
+# files are then handed to the app user below.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN npx playwright install --with-deps chromium
+
+COPY . .
+COPY docker-e2e-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# IF-V8-42: hand the app tree, the browser cache and the user's home
+# to the non-root user. The entrypoint runs `mkdir -p` + writability
+# preflights for the screenshots/report bind mounts (which do not
+# exist in the image — they are mounted at run time).
+RUN mkdir -p /opt/ms-playwright /home/identityforge \
+    && chown -R identityforge:identityforge /app /opt/ms-playwright /home/identityforge
+
+ENV HOME=/home/identityforge \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+
+# Non-root test user (numeric UID:GID). socat forwarders, readiness
+# probes and Playwright all run as 10001:10001.
+USER 10001:10001
+
+ENTRYPOINT ["/entrypoint.sh"]
+# Default: the full E2E suite. Override with e.g. `npm run test:screenshots`.
+CMD ["npm", "run", "test:e2e"]

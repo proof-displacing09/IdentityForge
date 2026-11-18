@@ -1,0 +1,143 @@
+# IdentityForge — Docker test profile (Option A, P0-02).
+#
+# Purpose-built test containers for the Windows route: the host needs
+# Docker Desktop + PowerShell only (no host Python/Node). Used by
+# scripts/test-all.ps1:
+#   .\scripts\test-all.ps1            # offline gates in containers
+#   .\scripts\test-all.ps1 -Full -Strict   # + disposable cold-start
+#                                             + live gates + browser E2E
+#
+# Services run SEQUENTIALLY to conserve RAM on an 8 GB laptop — never
+# start backend-test, frontend-test and frontend-e2e at the same time.
+# The E2E service runs ALONE after the other test containers stop:
+# Chromium + the Keycloak JVM together are the heaviest combination
+# here (~1-1.5 GB for the E2E image, ~1 GB for Keycloak on first boot).
+#
+# The app stack itself (keycloak/backend/frontend) is NOT redefined
+# here: --full cold-starts it from docker-compose.yml in a disposable
+# project namespace (CLEAN_COMPOSE_BUILD_BOOT), then runs the live
+# gates against it. The test services below join that same network.
+#
+# Manual use (Linux/macOS or PowerShell with docker compose):
+#   docker compose -f docker-compose.yml -f docker-compose.test.yml \
+#     --profile test run --rm backend-test
+#   docker compose -f docker-compose.yml -f docker-compose.test.yml \
+#     --profile test run --rm frontend-test
+#   docker compose -f docker-compose.yml -f docker-compose.test.yml \
+#     --profile test-e2e run --rm frontend-e2e
+
+services:
+  backend-test:
+    profiles: ["test"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # pytest + ruff ARE in backend/requirements-freeze.txt, already
+    # installed in the backend image; pip-audit is installed at BUILD
+    # TIME from backend/requirements-audit.txt (IF-V8-42, v8.0.5) —
+    # the audit gate runs as the non-root app user and can no longer
+    # install into system site-packages at gate time (see
+    # scripts/test-all.ps1 PYTHON_DEPENDENCY_AUDIT).
+    # tests/ is NOT copied into the image, so it is mounted read-only;
+    # the package resolves via PYTHONPATH=/app/src (set in the image).
+    volumes:
+      - ./backend/tests:/app/tests:ro
+      - ./backend/src:/app/backend/src:ro
+      - ./frontend/src:/app/frontend/src:ro
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./docker-compose.test.yml:/app/docker-compose.test.yml:ro
+      - ./.github:/app/.github:ro
+      # IF-V4-06 (v5): docs-contract gate needs the normative tree
+      # inside the offline test container (docs + scripts + example
+      # reports + top-level README/SECURITY). Read-only; the container
+      # scan covers exactly these paths (the full-tree scan, including
+      # frontend/src, runs in test-all.sh / CI).
+      - ./docs:/app/docs:ro
+      - ./scripts:/app/scripts:ro
+      - ./example-reports:/app/example-reports:ro
+      - ./README.md:/app/README.md:ro
+      - ./SECURITY.md:/app/SECURITY.md:ro
+    working_dir: /app
+    command: ["sh", "-c", "python -m ruff check src tests && python -m ruff format --check src tests && python -m pytest -q && python -m identityforge.cli verify-all"]
+    networks:
+      - identityforge-net
+    # No ports published; no depends_on (offline fixtures need no IdP).
+
+  frontend-test:
+    profiles: ["test"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    # The production image already ran `npm run build` at build time;
+    # the command below re-runs typecheck + unit tests + build as gates.
+    working_dir: /app
+    command: ["sh", "-c", "npm run typecheck && npm test -- --run && npm run build"]
+    networks:
+      - identityforge-net
+    # No ports published; no depends_on.
+
+  frontend-e2e:
+    profiles: ["test-e2e"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.e2e
+    # The browser runs INSIDE this container. Keycloak redirects the
+    # browser to http://127.0.0.1:8080 (KC_HOSTNAME), which inside a
+    # container is the container itself — so the entrypoint starts
+    # socat loopback forwarders (127.0.0.1:5173/8000/8080 ->
+    # frontend/backend/keycloak services) before launching Playwright.
+    # No PLAYWRIGHT_BASE_URL override is needed: the defaults work
+    # through the forwarders. No depends_on here: test-all.ps1 gates
+    # E2E on doctor READY against the cold-started stack.
+    environment:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      # IF-V4-10 (v5): the JSON report is bound to the project it ran
+      # against (config.metadata.target). The runners set this to the
+      # disposable cold-start project before the E2E run; unset it
+      # means the persistent host lab.
+      IDENTITYFORGE_E2E_TARGET: ${IDENTITYFORGE_E2E_TARGET:-host-lab}
+    volumes:
+      # Fresh screenshots land in test-results/ — never overwrite the
+      # shipped PNGs in frontend/e2e/screenshots/.
+      - ./test-results/e2e-screenshots:/app/e2e/screenshots
+      # IF-V4-10 (v5): the Playwright JSON report
+      # (test-results/playwright-report.json) must survive `run --rm`
+      # so the runners can validate it on the host. Without this
+      # mount the report would die with the container and the E2E
+      # gate would have no evidence to parse.
+      - ./test-results:/app/test-results
+    networks:
+      - identityforge-net
+    # No ports published. Runs ALONE (see the header note).
+
+  live-gate:
+    profiles: ["test"]
+    image: python:3.12-slim
+    # IF-V8-42 (v8.0.5): stdlib-only driver, reads /scripts and
+    # /test-results read-only and writes nothing, so it runs as the
+    # same non-root UID 10001 as the app images (numeric — the base
+    # image has no `identityforge` passwd entry, and none is needed).
+    user: "10001:10001"
+    # Stdlib-only driver; no build needed. Mounted read-only. The
+    # host map (live-gate.py) rewrites 127.0.0.1:8080/8000 to the
+    # Compose service names for the TCP connection only — every URL
+    # string, redirect target and issuer check stays canonical.
+    volumes:
+      - ./scripts:/scripts:ro
+      # IF-V4-10 (v5): read-only host test-results/ so the validator
+      # (scripts/validate-playwright-report.py) can run inside this
+      # stdlib-only container against the JSON report the E2E run
+      # left on the host (see the PLAYWRIGHT_E2E / RESPONSIVE_QA
+      # gates in scripts/test-all.ps1).
+      - ./test-results:/test-results:ro
+    environment:
+      IDENTITYFORGE_LIVE_GATE_HOST_MAP: '{"8080": "keycloak", "8000": "backend"}'
+    # Default runs every check; override per gate, e.g.:
+    #   ... run --rm live-gate python3 /scripts/live-gate.py login
+    command: ["python3", "/scripts/live-gate.py", "all"]
+    networks:
+      - identityforge-net
+
+networks:
+  identityforge-net:
+    driver: bridge

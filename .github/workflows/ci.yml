@@ -1,0 +1,472 @@
+# IdentityForge CI
+#
+# Lanes:
+#   1. backend  — pytest (offline selection `-m "not live_keycloak"`,
+#      ruff, pip-audit. The four live_keycloak-marked tests are excluded
+#      here and run in the keycloak-e2e lane instead (IF-V8.0.2-B).
+#   2. frontend — typecheck, Vitest, production build, npm audit.
+#   3. scripts  — the runner/test-harness suites (IF-V4-01/02/08/09/10,
+#      v5; IF-V5-01/05, v6): gate strictness, dependency gates, dockerignore semantics,
+#      Compose healthcheck (static part only + the full stub-only
+#      regression suite + the PowerShell matrix, IF-V7.3.1-C/D),
+#      doctor, live-gate host-map adapter, Playwright validator,
+#      docs-contract path independence, version contract, and the
+#      PowerShell native-invocation + preflight suites (pwsh
+#      installed on the runner so they RUN instead of skipping
+#      honestly). v8.0.4 (Coverage Closure 2) adds the version-contract
+#      negative fixtures (scripts/test-version-contract.sh) and the
+#      PowerShell selection regression (scripts/test-ps1-selection.sh,
+#      default mode only — the --live mode stays NOT RUN here; see the
+#      steps). The WS3 depth tests run here too (v8.0.1: 51 offline
+#      tests — properties + differential + fault injection — with the
+#      pinned Hypothesis; the live sequence is NOT run here).
+#      No Docker daemon is needed: every suite either
+#      uses fakes/stubs or records its Docker-dependent part NOT RUN.
+#      No network-dependent `npm ci` runs on this lane (an earlier
+#      gate-strictness replay stalled on network `npm ci` — the
+#      scripts lane must never depend on registry access).
+#   4. keycloak-e2e — SEPARATE lane, NOT run by default. It needs a Docker
+#      daemon + Keycloak + a browser, which the default GitHub-hosted
+#      runner job does not guarantee for this lab. It is defined here as a
+#      manual (workflow_dispatch) job so a reviewer can run it explicitly,
+#      and its status is never presented as proof of the default lanes.
+#      Until that lane runs, Keycloak E2E is NOT RUN — see
+#      docs/VALIDATION_AND_LIMITATIONS.md.
+#      The lane runs ./scripts/test-all.sh --full --strict, which fails
+#      (nonzero) if any required live gate was skipped or unavailable —
+#      a green default CI run must never be read as "Keycloak E2E passed".
+#      A green default run (backend + frontend + scripts lanes) proves
+#      the OFFLINE gates only: pytest, Vitest, typecheck, build,
+#      docs-contract, version-contract, and the harness suites. It is
+#      NOT live-Keycloak proof — that proof exists only after the
+#      keycloak-e2e lane runs with workflow_dispatch.
+#
+# This workflow is SOURCE-DELIVERED and UNEXECUTED in the build
+# sandbox (no Docker there, and CI cannot run here): no run of it has
+# been observed by the authors. The first real run is the reviewer's
+# — see docs/REVIEWER_GUIDE.md §7. That covers the v7.3.1 additions
+# too (healthcheck regression suite, PowerShell matrix): their YAML
+# syntax was validated locally with python yaml, but GitHub Actions
+# execution itself is NOT RUN — a YAML-valid workflow is not an
+# executed one, and must never be presented as such.
+#
+# Permissions are read-only. No secrets are used. No deployment step exists.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend (pytest + ruff + pip-audit)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-freeze.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-freeze.txt
+          # Editable install (no deps — already frozen above) so the
+          # `identityforge` CLI entry point resolves. pytest alone works
+          # via pytest.ini pythonpath=src, but `python -m identityforge.cli`
+          # needs the installed package; without this the smoke step below
+          # fails with ModuleNotFoundError.
+          pip install -e . --no-deps
+      - name: Dependency audit (pip-audit — PYTHON_DEPENDENCY_AUDIT)
+        # Pinned separately from the runtime deps (IF-V4-09, v5):
+        # backend/requirements-audit.txt pins the auditor itself so
+        # the audit result is reproducible and the install step is a
+        # measured, versioned step — not an unpinned runtime install.
+        run: |
+          pip install -r requirements-audit.txt
+          python -m pip_audit -r requirements-freeze.txt
+      - name: Lint (ruff)
+        run: ruff check src tests
+      - name: Format check (ruff)
+        run: ruff format --check src tests
+      # IF-V4-06 (v5): docs-contract — every reason code / report field
+      # named in docs, example reports and UI copy must be exactly what
+      # backend/src/identityforge/models.py defines. Stdlib-only; fails
+      # the lane on drift. Runs from the repo root, not backend/.
+      - name: Docs-contract validation (DOCS_CONTRACT)
+        working-directory: .
+        run: python3 scripts/validate-docs-contract.py
+      # IF-V8.0.2-B (v8.0.2): the OFFLINE selection only. The four
+      # provider-dependent tests (marked live_keycloak in
+      # backend/tests/adversarial/test_ws1_v8_oidc.py) need a live
+      # Keycloak on 127.0.0.1:8080 and fail with 503
+      # PROVIDER_UNAVAILABLE without one; this lane boots no provider,
+      # so an unfiltered run fails a correct tree. They run in the
+      # keycloak-e2e lane via test-all.sh --full gate LIVE_PROVIDER_PYTEST.
+      - name: Run offline fixture tests
+        run: python -m pytest -q -m 'not live_keycloak'
+      - name: Run scenario CLI smoke test (offline)
+        run: python -m identityforge.cli verify-all
+
+  frontend:
+    name: frontend (typecheck + tests + build + npm audit)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Dependency audit (npm audit — NPM_FULL_LOCKFILE_AUDIT)
+        # Fails the lane if a high/critical advisory affects a shipped
+        # dependency. `npm audit` needs registry access; on a blocked
+        # network this step cannot run — see scripts/test-all.sh, which
+        # records NPM_FULL_LOCKFILE_AUDIT as NOT RUN (never PASS) and
+        # runs the GHSA direct-only fallback as information only.
+        run: npm audit --audit-level=high
+      - name: GHSA direct fallback (informational — GHSA_DIRECT_FALLBACK)
+        # Direct dependencies only; transitive advisories are NOT
+        # checked here. Informational and never a substitute for the
+        # npm audit step above: continue-on-error so a GitHub API
+        # quota outage cannot fail (or pass) this lane on its own.
+        working-directory: .
+        continue-on-error: true
+        run: python3 scripts/npm-advisory-check.py
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit / component tests
+        run: npm test -- --run
+      - name: Production build
+        run: npm run build
+
+  scripts:
+    # IF-V4-01/02/08/09/10 (v5). Every suite here runs without a Docker
+    # daemon: the Docker-dependent checks either use fakes/stubs or
+    # record NOT RUN with the exact reviewer command (see
+    # scripts/test-compose-healthcheck.sh). PowerShell is installed so
+    # the ps1 suites RUN instead of skipping honestly; without it they
+    # would SKIP with a clear message, never silently pass.
+    # IF-V7.3.1-C/D (v7.3.1): this lane also runs the full Compose
+    # healthcheck regression suite (stub `docker` only; the 04-a
+    # port-occupied case uses reserved test ports, never the real
+    # lab ports) and the deterministic PowerShell matrix over the
+    # healthcheck wrapper (pwsh -File, stub-only). Neither needs a
+    # daemon, a network `npm ci`, or a sibling baseline tree — the
+    # baseline comparisons (02-a/03-a) are NOT RUN in CI, honestly.
+    # v8.0.4 (Coverage Closure 2): the version-contract negative
+    # fixtures and the PowerShell selection regression (default mode)
+    # run here too — both stub/offline-only, no Docker daemon, no live
+    # Keycloak; the ps1 --live mode and Windows PowerShell 5.1 stay
+    # NOT RUN on this runner (see the steps).
+    # v8.0.5 (IF-V8-43): the action-pin checker
+    # (scripts/test-action-pins.sh) runs here too — every `uses:` line
+    # in .github/workflows/ must be pinned to a verified full 40-hex
+    # SHA with a `# vX.Y.Z` comment (docs/ACTION_SHA_PINS.md); a new
+    # mutable reference fails this lane. Offline, no Docker daemon.
+    # GitHub Actions execution of this workflow is NOT RUN (see the
+    # header note): YAML syntax was validated locally only.
+    name: scripts (runner + harness suites, no Docker needed)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Set up Node 24
+        # IF-V7-02 (v7.1): the scripts lane runs the dependency-gates
+        # suite, which needs a real node/npm (the fixture fake npm
+        # delegates non-audit subcommands to it). Do NOT depend on a
+        # preinstalled /usr/bin/node: the default runner image is not
+        # guaranteed to carry one, and an NVM-style layout puts node
+        # outside /usr/bin entirely. actions/setup-node puts Node 24
+        # on PATH explicitly.
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: "24"
+      - name: Install PowerShell 7 (for the ps1 suites)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq wget apt-transport-https software-properties-common
+          wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq powershell
+          pwsh --version
+      - name: Shell + Python syntax gate (every touched runner file)
+        run: |
+          for f in scripts/*.sh; do bash -n "$f" || exit 1; done
+          python3 -m py_compile scripts/*.py
+      - name: Action SHA pins (IF-V8-43, v8.0.5)
+        # Every external GitHub Action in .github/workflows/ must be
+        # pinned to a full 40-hex commit SHA with a `# vX.Y.Z` comment
+        # naming the release tag the SHA was resolved from upstream
+        # (docs/ACTION_SHA_PINS.md records the evidence). The checker
+        # is offline and fail-closed: a new mutable reference, a
+        # truncated/wrong SHA, a missing/wrong version comment, or an
+        # unmapped action fails this lane. Its built-in negative
+        # control proves a mutable fixture is rejected.
+        # GitHub Actions execution of this workflow is NOT RUN (see the
+        # header note): YAML syntax was validated locally only.
+        run: bash scripts/test-action-pins.sh
+      - name: Prepare scripts harness prerequisites
+        run: |
+          python -m pip install -r backend/requirements-freeze.txt
+          python -m pip install -r backend/requirements-audit.txt
+          python -m pip install -e backend --no-deps
+          (cd frontend && npm ci)
+          ci_admin_password="$(openssl rand -hex 32)"
+          echo "::add-mask::$ci_admin_password"
+          printf 'KEYCLOAK_ADMIN_PASSWORD=%s\n' "$ci_admin_password" >> "$GITHUB_ENV"
+      - name: Gate strictness suite (IF-V4-09)
+        run: bash scripts/test-gate-strictness.sh
+      - name: Dependency-gates suite (IF-V4-09)
+        run: bash scripts/test-dependency-gates.sh
+      - name: Dockerignore semantics (IF-V4-02)
+        run: python3 scripts/test-dockerignore.py
+      - name: Compose healthcheck — static part only (IF-V4-01)
+        # The Docker-probed part is NOT RUN here (no daemon on the
+        # default runner): the script prints NOT RUN with the exact
+        # reviewer command and exits 0 after the static pass.
+        run: bash scripts/test-compose-healthcheck.sh
+      - name: Install healthcheck-regression prerequisites (IF-V7.3.1-C/D)
+        # The regression suite needs python3 WITH PyYAML (the nested
+        # scripts/compose-config-check.py imports it — it is NOT
+        # stdlib-only), plus curl, rsync and bash. The suite itself
+        # preflights PyYAML in the SAME interpreter it runs under
+        # and exits 2 ENVIRONMENT NOT READY if it is missing — this
+        # step installs it first and then PROVES each prerequisite
+        # (versions printed), so a missing dep can never be
+        # mislabelled as a Compose defect in CI. No Docker daemon.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq curl rsync
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pyyaml
+          python3 -c "import sys, yaml; print(f'python {sys.version.split()[0]} PyYAML {yaml.__version__}')"
+          bash --version | head -1
+          curl --version | head -1
+          rsync --version | head -1
+      - name: Compose healthcheck regression suite (IF-V7.3.1-C)
+        # IF-V7.3.1-C: the full stub-only regression suite
+        # (IF-V7.1-02/03/04, IF-V7.2-01/02/03). No Docker daemon:
+        # every Docker call goes to the stub `docker`, which logs
+        # each invocation. The 04-a port-occupied case uses
+        # controlled loopback listeners on reserved test ports via
+        # the IDENTITYFORGE_HCPROBE_TEST_PORTS override — it never
+        # needs the reviewer's real 8080/8000/5173 and is
+        # deterministic whether a live stack is up or down.
+        # The historical-baseline comparisons (02-a/03-a) are
+        # honestly NOT RUN here: the checkout has no sibling v7.1
+        # tree, and their absence is NOT a red/green substitute for
+        # the current-tree tests — the suite exits 0 only if every
+        # current-tree case passes.
+        run: bash scripts/test-compose-healthcheck-regressions.sh
+      - name: PowerShell healthcheck matrix (IF-V7.3.1-D/E)
+        # Deterministic PowerShell wrapper smoke matrix over
+        # scripts/test-compose-healthcheck.ps1, using the pwsh
+        # installed by the "Install PowerShell 7" step above.
+        # Stub-only: no Docker daemon is ever invoked; the matrix
+        # asserts exit codes AND the PASS/FAIL/NOT RUN counts parsed
+        # from each child summary line. Run with `pwsh -File` —
+        # NEVER `pwsh -Command "& { ... }"`, which swallows a
+        # script's exit code (v7.3 lesson, proved by minimal repro).
+        # Windows PowerShell 5.1 execution is NOT RUN on this
+        # ubuntu runner — reviewer gate on Windows.
+        run: pwsh -File scripts/test-compose-healthcheck-ps-matrix.ps1
+      - name: Port preflight suite
+        run: bash scripts/test-port-preflight.sh
+      - name: Doctor suite
+        run: bash scripts/test-doctor.sh
+      - name: Live-gate host-map adapter suite
+        run: python3 scripts/test-live-gate-hostmap.py
+      - name: Playwright validator self-test (IF-V4-10)
+        run: python3 scripts/test-validate-playwright-report.py
+      - name: Docs-contract path independence (IF-V5-01)
+        # The checker must behave identically under a `data/` ancestor
+        # or a path with spaces (v5: 104 false violations under a
+        # `data/` ancestor). 15 checks: clean docs PASS + stale-code /
+        # below-root exclusion / symlink-escape / empty-scan negatives
+        # in all three paths.
+        run: bash scripts/test-docs-contract-paths.sh
+      - name: Version contract (IF-V5-05)
+        # Every authoritative version value must equal the release
+        # version (1.8.5): manifest, backend pyproject + __init__ +
+        # FastAPI + health, frontend package.json + lockfile; the UI
+        # reads the version from GET /api/v1/health.
+        run: python3 scripts/check-version-contract.py
+      - name: Version-contract negative fixtures (IF-V5-05)
+        # v8.0.4 (Coverage Closure 2): the checker above proves the
+        # real tree agrees; this suite proves the checker itself FAILS
+        # CLOSED — one differing source, a missing source, or a
+        # malformed --expected must exit nonzero
+        # (scripts/test-version-contract.sh builds minimal fixtures at
+        # the release version and mutates one source at a time).
+        # Stdlib-only python3; no Docker, no venv, no network, no live
+        # Keycloak. It was NOT in CI before v8.0.4. Rehearsed locally
+        # from a clean-checkout copy: 13/13 PASS, rc=0 (2026-11-13).
+        # GitHub Actions execution of this workflow is NOT RUN (see the
+        # header note): YAML syntax was validated locally only.
+        run: bash scripts/test-version-contract.sh
+      - name: WS2 v8 regressions — security headers + socat bind (IF-V8-40/41)
+        # Static checks for the v8 WS2 fixes: vite.config.ts carries
+        # the security-headers plugin on dev + preview servers, and
+        # every socat loopback forwarder binds 127.0.0.1 explicitly.
+        # The live-header proof is frontend/e2e/security-headers.spec.ts
+        # (Playwright, runs in the keycloak-e2e lane / local stack).
+        run: bash scripts/pentest/ws2/ws2-v8-regressions.sh
+      - name: WS3 depth tests — properties + differential + fault injection (v8.0.1)
+        # v8.0.1: the 51 WS3 depth tests (24 Hypothesis properties, 12
+        # differential, 15 fault injection) are NOT part of the
+        # 491-test backend suite (different rootdir/testpaths) and were
+        # run by neither the default backend lane nor CI before. This
+        # step installs the pinned backend freeze + the pinned
+        # test-only Hypothesis (backend/requirements-test.txt) and runs
+        # the three offline files with PYTHONPATH=backend/src. No
+        # Docker daemon, no live Keycloak, no npm registry: every test
+        # uses loopback stub servers / disposable TestClient apps /
+        # temp DBs only (the pip installs need PyPI, like the pyyaml
+        # prerequisite step above — never the npm registry). The stateful live sequence + extra live probes
+        # are NOT run here (they need the live Keycloak stack) — see
+        # the keycloak-e2e lane. Counts stay separate: the backend lane
+        # reports 491, this step reports 51 — never added together.
+        # The step commands were rehearsed locally in a fresh venv
+        # (51 passed, 2026-11-13); GitHub Actions execution of this
+        # workflow is NOT RUN (see the header note).
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements-freeze.txt -r backend/requirements-test.txt
+          PYTHONPATH=backend/src python -m pytest scripts/pentest/ws3/test_ws3_properties.py scripts/pentest/ws3/test_ws3_differential.py scripts/pentest/ws3/test_ws3_fault_injection.py -q -p no:cacheprovider
+      - name: Offline/provider selection regression (IF-V8.0.2-B, v8.0.2)
+        # Proves the default offline selection succeeds with no provider
+        # (a) and the live lane wiring still runs the four marked tests
+        # (b): marker registration, the exact total = offline + live
+        # split, the four live_keycloak IDs, the identical `-m`
+        # selection in CI / test-all.sh / verify-release, and a real
+        # offline run of the selection with nothing on 8080. Builds a
+        # disposable venv from the freeze (PyPI, like the WS3 step
+        # above); no Docker daemon, no live Keycloak. The --live mode
+        # (four tests against a real provider) is NOT run here — it
+        # runs locally and is covered in CI by the keycloak-e2e lane
+        # (test-all.sh --full gate LIVE_PROVIDER_PYTEST).
+        # GitHub Actions execution of this workflow is NOT RUN (see the
+        # header note): YAML syntax was validated locally only.
+        run: bash scripts/test-offline-provider-selection.sh
+      - name: PowerShell selection regression (IF-V8.0.2-B, v8.0.3/v8.0.4)
+        # v8.0.4 (Coverage Closure 2): the script that guards the
+        # Windows OFFLINE_UNIT / LIVE_PROVIDER_PYTEST fix was shipped in
+        # v8.0.3 but never executed by CI. Default mode only: static
+        # wiring (OFFLINE_UNIT -m 'not live_keycloak' as one argument,
+        # LIVE_PROVIDER_PYTEST full gate + forwarder + "4 passed",
+        # BOOT_OK gating, 19 gates), the exact 520 = 516 + 4 selection
+        # split, a real offline pytest run with no provider on 8080,
+        # and the no-docker / daemon-dead / quoting / stub -Offline
+        # probes under pwsh (installed by the "Install PowerShell 7"
+        # step above). Offline/stub-only: no Docker daemon, no live
+        # Keycloak. The --live mode (forwarder + 4 tests vs a real
+        # provider) is NOT run here — it runs locally and is covered in
+        # CI by the keycloak-e2e lane (test-all.sh --full gate
+        # LIVE_PROVIDER_PYTEST). The runtime teardown probe SKIPs on
+        # runners whose pwsh TcpClient connects to any loopback port
+        # (the known sandbox quirk); Windows PowerShell 5.1 execution
+        # is NOT RUN on this ubuntu runner — reviewer gate on Windows.
+        # The step installs the pinned backend freeze first (PyPI, like
+        # the WS3 step above) so the suite's real offline pytest run
+        # uses the runner python; the suite itself falls back to a
+        # disposable venv if no usable python is found. Scratch goes to
+        # $RUNNER_TEMP (portable form, v8.0.4 — the v8.0.3 script
+        # hard-coded $HOME/workspace). The step commands were rehearsed
+        # locally from a clean-checkout copy: 34 passed, 0 failed, 1
+        # skipped, rc=0 (2026-11-13; the +1 vs v8.0.3's 33 is the new
+        # VERSION_CONTRACT label-version-exclusivity check; the --live
+        # rehearsal on the working tree read 36/0/1).
+        # GitHub Actions execution of this workflow is NOT RUN (see the
+        # header note): YAML syntax was validated locally only.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements-freeze.txt
+          bash scripts/test-ps1-selection.sh
+      - name: PowerShell native-invocation suite (IF-V4-08/09)
+        run: bash scripts/test-ps1-native.sh
+      - name: PowerShell preflight suite (IF-V4-08/09/10)
+        # The ports-free cold-start case inside is NOT RUN on this
+        # runner (no Docker daemon) and is recorded SKIP honestly.
+        run: bash scripts/test-ps1-preflight.sh
+
+  keycloak-e2e:
+    # Manual-only lane. Requires Docker + Keycloak + Playwright browsers.
+    # Deliberately NOT part of the default push/PR run: a green default CI
+    # run must never be read as "Keycloak E2E passed". Run it explicitly
+    # with workflow_dispatch, then record the result in
+    # docs/VALIDATION_AND_LIMITATIONS.md with the run link and date.
+    name: keycloak-e2e (manual only — NOT RUN by default)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: "24"
+      - name: Prepare private CI environment
+        run: |
+          cp .env.example .env
+          CI_ADMIN_PASSWORD="$(openssl rand -hex 32)"
+          echo "::add-mask::$CI_ADMIN_PASSWORD"
+          sed -i "s|^KEYCLOAK_ADMIN_PASSWORD=.*$|KEYCLOAK_ADMIN_PASSWORD=${CI_ADMIN_PASSWORD}|" .env
+      - name: Install frontend dependencies + Playwright browsers
+        run: |
+          cd frontend
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Full release gate (offline + live Keycloak + browser E2E)
+        # Boots the Compose stack, runs the real-browser login/negatives
+        # and Playwright E2E, and FAILS if any required gate was skipped
+        # or unavailable. See scripts/test-all.sh for the gate table.
+        # IF-V8.0.2-B (v8.0.2): this also runs the four live_keycloak-
+        # marked pytest tests (test-all.sh --full gate LIVE_PROVIDER_PYTEST,
+        # against the cold-started disposable Keycloak) — the only CI
+        # step that runs them; the default backend lane excludes them.
+        run: ./scripts/test-all.sh --full --strict
+      - name: Upload gate summary on failure (no raw logs or browser traces)
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: identityforge-gate-evidence
+          # Raw test-results/ may contain expanded configuration, tokens,
+          # screenshots or browser traces. Keep only aggregate gate evidence.
+          path: |
+            test-results/gates.json
+            test-results/gates.tsv
+          if-no-files-found: warn
+      - name: Tear down lab
+        if: always()
+        # -v is the explicit CI choice: ephemeral runner, no volume reuse.
+        run: docker compose down -v

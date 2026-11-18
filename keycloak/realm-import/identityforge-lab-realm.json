@@ -1,0 +1,150 @@
+{
+  "attributes": {
+    "lab-data-classification": "SYNTHETIC LAB DATA \u2014 NOT REAL IDENTITY INFORMATION",
+    "lab-note": "Fictional campus club portal. Synthetic test accounts only. Localhost-only."
+  },
+  "browserFlow": "browser",
+  "bruteForceProtected": true,
+  "clientAuthenticationFlow": "clients",
+  "clientScopeMappings": {},
+  "clients": [
+    {
+      "adminUrl": "http://127.0.0.1:8000",
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "pkce.code.challenge.method": "S256"
+      },
+      "baseUrl": "http://127.0.0.1:5173",
+      "clientId": "campus-club-portal",
+      "description": "SYNTHETIC LAB DATA \u2014 NOT REAL IDENTITY INFORMATION. Public OIDC client using authorization code flow with PKCE S256. No client secret: PKCE is the code-binding mechanism (RFC 7636).",
+      "directAccessGrantsEnabled": false,
+      "enabled": true,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": false,
+      "implicitFlowEnabled": false,
+      "name": "Cedarbridge Campus Club Portal (synthetic lab client)",
+      "protocolMappers": [
+        {
+          "config": {
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "id.token.claim": "true",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "userinfo.token.claim": "true"
+          },
+          "consentRequired": false,
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper"
+        }
+      ],
+      "publicClient": true,
+      "redirectUris": [
+        "http://127.0.0.1:8000/auth/callback"
+      ],
+      "rootUrl": "http://127.0.0.1:5173",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": true,
+      "webOrigins": [
+        "http://127.0.0.1:5173"
+      ]
+    }
+  ],
+  "defaultRoles": [
+    "member"
+  ],
+  "directGrantFlow": "direct grant",
+  "displayName": "IdentityForge Lab (synthetic)",
+  "displayNameHtml": "IdentityForge Lab (synthetic)",
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "enabled": true,
+  "firstBrokerLoginFlow": "first broker login",
+  "loginWithEmailAllowed": false,
+  "realm": "identityforge-lab",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "registrationFlow": "registration",
+  "requiredActions": [],
+  "resetCredentialsFlow": "reset credentials",
+  "resetPasswordAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "description": "SYNTHETIC: ordinary member of the fictional Cedarbridge Campus Club.",
+        "name": "member"
+      },
+      {
+        "description": "SYNTHETIC: club officer of the fictional Cedarbridge Campus Club. Grants access to the officer-only resource.",
+        "name": "officer"
+      }
+    ]
+  },
+  "scopeMappings": [
+    {
+      "client": "campus-club-portal",
+      "roles": [
+        "member",
+        "officer"
+      ]
+    }
+  ],
+  "sslRequired": "none",
+  "users": [
+    {
+      "attributes": {
+        "lab-data-classification": [
+          "SYNTHETIC LAB DATA \u2014 NOT REAL IDENTITY INFORMATION"
+        ],
+        "lab-role-note": [
+          "Fictional member of the Cedarbridge Campus Club. Not a real person."
+        ]
+      },
+      "credentials": [
+        {
+          "temporary": false,
+          "type": "password",
+          "value": "LabPass-Student-01!"
+        }
+      ],
+      "emailVerified": false,
+      "enabled": true,
+      "firstName": "Synthetic",
+      "id": "10000000-0000-4000-8000-000000000001",
+      "lastName": "Student01",
+      "realmRoles": [
+        "member"
+      ],
+      "username": "student_01"
+    },
+    {
+      "attributes": {
+        "lab-data-classification": [
+          "SYNTHETIC LAB DATA \u2014 NOT REAL IDENTITY INFORMATION"
+        ],
+        "lab-role-note": [
+          "Fictional officer of the Cedarbridge Campus Club. Not a real person."
+        ]
+      },
+      "credentials": [
+        {
+          "temporary": false,
+          "type": "password",
+          "value": "LabPass-Officer-01!"
+        }
+      ],
+      "emailVerified": false,
+      "enabled": true,
+      "firstName": "Synthetic",
+      "id": "10000000-0000-4000-8000-000000000002",
+      "lastName": "Officer01",
+      "realmRoles": [
+        "member",
+        "officer"
+      ],
+      "username": "officer_01"
+    }
+  ]
+}

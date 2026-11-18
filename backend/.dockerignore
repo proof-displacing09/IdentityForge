@@ -1,0 +1,39 @@
+# IdentityForge backend build context (IF-V4-02, v5).
+#
+# The backend Dockerfile installs the pinned requirements and copies
+# src/ only. Without this file, a build context could carry the local
+# virtualenv, the runtime evidence database (backend/data/*.db),
+# caches, test artefacts and archives into the image.
+#
+# Kept in the context (the images need them): src/**, tests/** (the
+# test profile mounts tests read-only, but they must stay available
+# to any image that copies them), pyproject.toml,
+# requirements-freeze.txt, requirements.txt, pytest.ini, Dockerfile,
+# docker/prepare-data-volume.py (IF-V8-42 one-shot volume prep,
+# copied into the backend image for the backend-data-prep service).
+.venv/
+venv/
+data/
+*.db
+*.sqlite*
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+test-results/
+dist/
+build/
+*.egg-info/
+.env
+.env.*
+!.env.example
+.git/
+*.log
+*.zip
+*.tar.gz
+*Zone.Identifier
+.DS_Store
+Thumbs.db

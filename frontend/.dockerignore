@@ -1,0 +1,34 @@
+# IdentityForge frontend build context (IF-V4-02, v5).
+#
+# The frontend Dockerfiles run `npm ci` and then `COPY . .`. Without
+# this file, every build context carried the 99 shipped E2E
+# screenshots (~27 MB) and — after a developer runs `npm ci` on a
+# Windows host — the host's node_modules, which can overwrite the
+# Linux container modules installed by `npm ci` and break
+# architecture-specific native binaries. Local .env files, caches,
+# reports and logs must never enter the image either.
+#
+# Kept in the context (the images need them): package.json,
+# package-lock.json, src/**, e2e SPEC FILES (*.spec.ts), the
+# Dockerfiles, docker-e2e-entrypoint.sh, index.html and configs.
+# E2E screenshot OUTPUT goes to the mounted host path
+# ./test-results/e2e-screenshots (docker-compose.test.yml) — it never
+# depends on the pre-shipped PNGs in e2e/screenshots/.
+node_modules/
+dist/
+.vite/
+e2e/screenshots/
+e2e/.cache/
+test-results/
+playwright-report/
+coverage/
+.env
+.env.*
+!.env.example
+.git/
+*.log
+*.zip
+*.tar.gz
+*Zone.Identifier
+.DS_Store
+Thumbs.db

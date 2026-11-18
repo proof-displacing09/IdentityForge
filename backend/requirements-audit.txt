@@ -1,0 +1,11 @@
+# IdentityForge auditor pins (IF-V4-09, v5) — SEPARATE from the
+# project runtime dependencies in backend/requirements-freeze.txt.
+#
+# These are the tools that AUDIT the dependencies, not dependencies
+# themselves. Pinning them here (instead of installing an unpinned
+# `pip-audit` at runtime) makes the audit reproducible and lets a
+# reviewer tell "auditor changed" apart from "project changed".
+# The version below is the one verified in the v5 build sandbox
+# (pip-audit 2.10.1, 2026-11-11); update it deliberately with a
+# re-run of the dependency gates, never silently.
+pip-audit==2.10.1

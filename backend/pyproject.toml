@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "identityforge"
+version = "1.8.5"
+description = "IdentityForge — OAuth/OIDC Authentication Attack Laboratory (backend)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.162.4",
+    "pydantic==2.10.4",
+    "PyJWT[crypto]==2.15.0",
+    "cryptography==50.0.2",
+    "httpx==0.28.1",
+    "uvicorn==0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # hypothesis is test-only: the 24 WS3 property tests
+    # (scripts/pentest/ws3/test_ws3_properties.py) need it; the app
+    # never imports it. Pinned to the exact version verified in the
+    # v8.0.1 sandbox; mirrored in backend/requirements-test.txt.
+    "hypothesis==6.170.15",
+    "pytest==9.0.3",
+    "ruff==0.9.2",
+]
+
+[project.scripts]
+identityforge = "identityforge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.coverage.run]
+source = ["identityforge"]
